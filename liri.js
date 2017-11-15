@@ -20,26 +20,10 @@ var myParam = process.argv.slice(3);
 
 var applicableCalls = ["my-tweets","spotify-this-song","movie-this"];
 
-var myOps = (process.argv[2]).toLowerCase(); //? "" : (process.argv[2]).toLowerCase();
+var myOps = process.argv[2] === undefined ? "" : (process.argv[2]).toLowerCase();
+console.log(myOps);
 
 var actOps = [];
-var myErrors = function(error) {
-	if (error) {
-		return console.log('Error occurred: ' + error);
-	}
-}
-
-fs.readFile(fileName,"utf8",function(error,genData){
-	myErrors(error);
-	actOps = genData.split(",");
-	console.log(actOps);
-	console.log(genData)
-})
-
-
-
-// var myOps = applicableCalls.indexOf(myOps) === -1 ? actOps[0] : myOps;
-// var myParam = applicableCalls.indexOf(myOps) === -1 ? actOps[1] : myParam;
 
 // readMe object describing the Application
 var readMe = {
@@ -70,6 +54,92 @@ var OMDBKeys = applicableKeys.OMDBKeys.OMDB_API_KEY;
 
 // error check function
 
+var myErrors = function(error) {
+	if (error) {
+		return console.log('Error occurred: ' + error);
+	}
+}
+
+var spotifyThis = function(ParamORE) {
+	spotifyClient.search({ type: 'track', query: ParamORE.join("%20") }, function(error, spotData) {
+		myErrors(error);
+		maxTracks = spotData.tracks.items.length < 20 ? spotData.tracks.items.length : 20;
+		for (var i = 0; i < maxTracks; i++) {
+			//	- Artist(s):
+			console.log("---------------------------------------------------");
+			console.log("ARTIST:")
+			console.log(spotData.tracks.items[i].album.artists[0].name);
+			
+			//  - Song's name:
+			console.log("TRACK NAME:")
+			console.log(spotData.tracks.items[i].name);
+			
+			//  - A preview link of the song:
+			console.log("SAMPLE URL:")
+			console.log(spotData.tracks.items[i].preview_url);
+			
+			//  - The album that the song is from:
+			console.log("ALBUM:")
+			console.log(spotData.tracks.items[i].album.name);				
+		}
+	});
+}
+
+var tweetThis = function(paraTweet) {
+	twittClient.get('statuses/user_timeline', {screen_name: paraTweet.join("%20")}, function(error, tweetsData, response) {
+		myErrors(error);
+		var maxTweets = tweetsData.length < 20 ? tweetsData.length : 20;
+		for(var i = 0; i < maxTweets;i++ ) {
+			console.log("\n@"+tweetsData[i].user.screen_name);
+			console.log(tweetsData[i].text);
+		}
+	});
+}
+
+var omdbThis = function(paraMovies) {
+	queryURL="http://www.omdbapi.com/?i=tt3896198&apikey=" + OMDBKeys+"&t=" + paraMovies.join("%20");
+	console.log(queryURL);
+	Request(queryURL, function(error, response, OMDBData){
+		myErrors(error);
+		bodyJSON = JSON.parse(OMDBData);
+		console.log(JSON.stringify(bodyJSON,null,2));
+		// Title of the movie
+		console.log("Title:",bodyJSON.Title);
+		
+		// Year the movie came out
+		console.log("Release Date:",bodyJSON.Year);
+		
+		// IMDB Rating of the movie
+		console.log("Rated:",bodyJSON.Rated);
+		
+		// Rotten Tomatores Rating of the movie
+		console.log(bodyJSON.Ratings[1].Source+":",bodyJSON.Ratings[1].Value);
+		
+		// Country where the movie was produced
+		console.log("Country of Origin:",bodyJSON.Country);
+		
+		// Language of the movie
+		console.log("Language:",bodyJSON.Language);
+		
+		// Plot of the movie
+		console.log("Plot:",bodyJSON.Plot);
+		
+		// Actors in the movie
+		console.log("Actors:",bodyJSON.Actors);
+	});	
+}
+
+fs.readFile(fileName,"utf8",function(error,genData){
+	actOps = genData.split(",");
+	if(applicableCalls.indexOf(myOps) === -1 || myOps === 'do-what-it-says') {
+		myOps = actOps[0];
+		myParam = [];
+		myParam.push(actOps[1]);
+	}
+	spotifyThis(myParam);
+});
+
+
 
 switch(myOps){
 	case 'readme':
@@ -78,70 +148,16 @@ switch(myOps){
 		}
 		break;
 	case 'my-tweets':
-		twittClient.get('statuses/user_timeline', {screen_name: myParam.join("%20")}, function(error, tweetsData, response) {
-			myErrors(error);
-			var maxTweets = tweetsData.length < 20 ? tweetsData.length : 20;
-			for(var i = 0; i < maxTweets;i++ ) {
-				console.log("\n@"+tweetsData[i].user.screen_name);
-				console.log(tweetsData[i].text);
-			}
-		});
+		tweetThis(myParam);
 		break;
 	case 'spotify-this-song':
-		spotifyClient.search({ type: 'track', query: myParam.join("%20") }, function(error, spotData) {
-			myErrors(error);
-			maxTracks = spotData.tracks.items.length < 20 ? spotData.tracks.items.length : 20;
-			for (var i = 0; i < maxTracks; i++) {
-				//	- Artist(s):
-				console.log("---------------------------------------------------");
-				console.log("ARTIST:")
-				console.log(spotData.tracks.items[i].album.artists[0].name);
-				
-				//  - Song's name:
-				console.log("TRACK NAME:")
-				console.log(spotData.tracks.items[i].name);
-				
-				//  - A preview link of the song:
-				console.log("SAMPLE URL:")
-				console.log(spotData.tracks.items[i].preview_url);
-				
-				//  - The album that the song is from:
-				console.log("ALBUM:")
-				console.log(spotData.tracks.items[i].album.name);				
-			}
-		});
+		spotifyThis(myParam);
 		break;
 	case 'movie-this':
-		queryURL="http://www.omdbapi.com/?i=tt3896198&apikey=" + OMDBKeys+"&t=" + myParam.join("%20");
-		console.log(queryURL);
-		Request(queryURL, function(error, response, OMDBData){
-			myErrors(error);
-			bodyJSON = JSON.parse(OMDBData);
-			console.log(JSON.stringify(bodyJSON,null,2));
-			// Title of the movie
-			console.log("Title:",bodyJSON.Title);
-			
-			// Year the movie came out
-			console.log("Release Date:",bodyJSON.Year);
-			
-			// IMDB Rating of the movie
-			console.log("Rated:",bodyJSON.Rated);
-			
-			// Rotten Tomatores Rating of the movie
-			console.log(bodyJSON.Ratings[1].Source+":",bodyJSON.Ratings[1].Value);
-			
-			// Country where the movie was produced
-			console.log("Country of Origin:",bodyJSON.Country);
-			
-			// Language of the movie
-			console.log("Language:",bodyJSON.Language);
-			
-			// Plot of the movie
-			console.log("Plot:",bodyJSON.Plot);
-			
-			// Actors in the movie
-			console.log("Actors:",bodyJSON.Actors);
-		});
+		omdbThis(myParam);
+		break;
+	case 'do-what-it-says':
+		console.log("...");
 		break;
 	default:
 		console.log(myOps," is not a proper operational argument");
