@@ -60,8 +60,8 @@ var myErrors = function(error) {
 	}
 }
 
-var spotifyThis = function(ParamORE) {
-	spotifyClient.search({ type: 'track', query: ParamORE.join("%20") }, function(error, spotData) {
+var spotifyThis = function(paramORE) {
+	spotifyClient.search({ type: 'track', query: paramORE.join("%20") }, function(error, spotData) {
 		myErrors(error);
 		maxTracks = spotData.tracks.items.length < 20 ? spotData.tracks.items.length : 20;
 		for (var i = 0; i < maxTracks; i++) {
@@ -98,11 +98,9 @@ var tweetThis = function(paraTweet) {
 
 var omdbThis = function(paraMovies) {
 	queryURL="http://www.omdbapi.com/?i=tt3896198&apikey=" + OMDBKeys+"&t=" + paraMovies.join("%20");
-	console.log(queryURL);
 	Request(queryURL, function(error, response, OMDBData){
 		myErrors(error);
 		bodyJSON = JSON.parse(OMDBData);
-		console.log(JSON.stringify(bodyJSON,null,2));
 		// Title of the movie
 		console.log("Title:",bodyJSON.Title);
 		
@@ -131,15 +129,14 @@ var omdbThis = function(paraMovies) {
 
 fs.readFile(fileName,"utf8",function(error,genData){
 	actOps = genData.split(",");
-	if(applicableCalls.indexOf(myOps) === -1 || myOps === 'do-what-it-says') {
+	if((applicableCalls.indexOf(myOps) === -1 && process.argv[2] != 'readme') || myOps === 'do-what-it-says') {
 		myOps = actOps[0];
 		myParam = [];
 		myParam.push(actOps[1]);
+		spotifyThis(myParam);
 	}
-	spotifyThis(myParam);
+	
 });
-
-
 
 switch(myOps){
 	case 'readme':
